@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 // Mood score → color mapping (1=red, 3=amber, 5=green)
 const moodColors = {
-  1: Color(0xFFE57373), // soft red
-  2: Color(0xFFFFB74D), // soft orange
-  3: Color(0xFFFFD54F), // soft amber
-  4: Color(0xFF81C784), // soft green
-  5: Color(0xFF4DB6AC), // soft teal
+  1: Color(0xFFD32F2F), // red
+  2: Color(0xFFE65100), // deep orange
+  3: Color(0xFFF9A825), // amber
+  4: Color(0xFF00897B), // teal
+  5: Color(0xFF2E7D32), // forest green
 };
 
 Color moodColor(int score) => moodColors[score.clamp(1, 5)] ?? moodColors[3]!;

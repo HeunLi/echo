@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/database/app_database.dart';
+import '../../core/database/database_provider.dart';
 import '../checkin/check_in_sheet.dart';
 import '../home/home_providers.dart';
 import 'journal_entry_screen.dart';
@@ -47,11 +48,11 @@ class JournalListScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (entries) => entries.isEmpty
-            ? _EmptyState(onTap: () => showCheckInSheet(context))
+            ? _EmptyState(onTap: () => showCheckInGuarded(context, ref.read(moodDaoProvider)))
             : _EntryList(entries: entries),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showCheckInSheet(context),
+        onPressed: () => showCheckInGuarded(context, ref.read(moodDaoProvider)),
         backgroundColor: const Color(0xFF3B5444),
         child: const Icon(Icons.add, color: Colors.white),
       ),

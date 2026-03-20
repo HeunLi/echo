@@ -7,19 +7,91 @@ import 'package:intl/intl.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/database_provider.dart';
+import '../../core/database/mood_dao.dart';
 import '../../core/theme/app_theme.dart';
 import '../home/home_providers.dart';
 
-// ─── Public helper to open the sheet ──────────────────────────────────────
+// ─── Public helpers ────────────────────────────────────────────────────────
 
-Future<void> showCheckInSheet(BuildContext context,
-    {MoodEntry? existing}) {
+/// Opens the check-in sheet directly. Pass [existing] to pre-fill for edits.
+Future<void> showCheckInSheet(BuildContext context, {MoodEntry? existing}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.35),
     builder: (_) => CheckInSheet(existing: existing),
+  );
+}
+
+/// Checks whether today already has a log. If yes, shows a confirmation
+/// dialog (Option B). If no, opens the sheet directly.
+Future<void> showCheckInGuarded(
+    BuildContext context, MoodDao dao) async {
+  final today = DateTime.now();
+  final existing = await dao.getEntryByDate(today);
+
+  if (!context.mounted) return;
+
+  if (existing == null) {
+    await showCheckInSheet(context);
+    return;
+  }
+
+  // Today already logged — show dialog
+  const emojiMap = {1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '🤩'};
+  final emoji = emojiMap[existing.moodScore] ?? '😐';
+  final label = existing.moodLabel;
+
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFFF7F7F4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Already logged today',
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF1C1C1A),
+        ),
+      ),
+      content: Text(
+        'You logged $emoji $label earlier. Would you like to edit your entry?',
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          height: 1.5,
+          color: const Color(0xFF1C1C1A).withValues(alpha: 0.65),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(
+            'Cancel',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF1C1C1A).withValues(alpha: 0.45),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(ctx).pop();
+            showCheckInSheet(context, existing: existing);
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF3B5444),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(50)),
+          ),
+          child: Text(
+            'Edit entry',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
   );
 }
 

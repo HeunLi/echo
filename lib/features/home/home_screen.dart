@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/database/app_database.dart';
+import '../../core/database/database_provider.dart';
 import '../../core/router/app_router.dart';
 import '../checkin/check_in_sheet.dart';
 
@@ -178,8 +179,8 @@ class HomeScreen extends ConsumerWidget {
                           ...recent.map((e) => _EntryCard(entry: e)),
                           const SizedBox(height: 8),
                           _AddMemoryRow(
-                              onTap: () =>
-                                  showCheckInSheet(context)),
+                              onTap: () => showCheckInGuarded(
+                                  context, ref.read(moodDaoProvider))),
                         ],
                       );
                     },
@@ -328,7 +329,7 @@ class _CheckedInCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () => showCheckInSheet(context),
+                  onTap: () => showCheckInSheet(context, existing: entry),
                   child: Text(
                     'Edit',
                     style: GoogleFonts.inter(
