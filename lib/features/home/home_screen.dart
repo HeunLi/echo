@@ -9,12 +9,18 @@ import '../../core/database/database_provider.dart';
 import '../../core/router/app_router.dart';
 import '../checkin/check_in_sheet.dart';
 
+import '../../core/notifications/notification_providers.dart';
 import '../../core/theme/app_theme.dart';
 import 'home_providers.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   String get _greeting {
     final h = DateTime.now().hour;
     if (h < 12) return 'Good morning';
@@ -23,7 +29,16 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    ref.listen<bool>(pendingCheckInProvider, (_, pending) {
+      if (pending) {
+        ref.read(pendingCheckInProvider.notifier).state = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) showCheckInGuarded(context, ref.read(moodDaoProvider));
+        });
+      }
+    });
+
     const bg = Color(0xFFEDEDE7);
     const green = Color(0xFF3B5444);
     final entriesAsync = ref.watch(recentEntriesProvider);

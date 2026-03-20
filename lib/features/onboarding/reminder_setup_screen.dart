@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../../core/notifications/notification_service.dart';
 import '../../core/router/app_router.dart';
 
 class ReminderSetupScreen extends StatefulWidget {
@@ -37,12 +37,21 @@ class _ReminderSetupScreenState extends State<ReminderSetupScreen> {
   bool get _isGoldenHour => _timeLabel == 'GOLDEN HOUR REFLECTION';
 
   Future<void> _onSetReminder(BuildContext context) async {
+    // Convert to 24h
+    final h = int.parse(_hours[_hourIndex]);
+    final isPm = _periodIndex == 1;
+    final hour24 = isPm ? (h == 12 ? 12 : h + 12) : (h == 12 ? 0 : h);
+    final minute = int.parse(_minutes[_minuteIndex]);
+
+    try {
+      await NotificationService.requestAndroidPermission();
+      await NotificationService.scheduleDailyReminder(hour24, minute);
+    } catch (e) {
+      debugPrint('Failed to schedule reminder: $e');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_complete', true);
-    await prefs.setBool('reminder_enabled', true);
-    await prefs.setInt('reminder_hour', int.parse(_hours[_hourIndex]));
-    await prefs.setInt('reminder_minute', int.parse(_minutes[_minuteIndex]));
-    await prefs.setString('reminder_period', _periods[_periodIndex]);
     if (context.mounted) context.go(AppRoutes.home);
   }
 
