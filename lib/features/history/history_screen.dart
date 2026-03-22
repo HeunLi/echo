@@ -333,38 +333,88 @@ class _TrendChart extends ConsumerWidget {
       );
     }
 
-    // Build spots: x = index (0..6), y = moodScore
-    final spots = <FlSpot>[];
-    for (int i = 0; i < entries.length; i++) {
-      spots.add(FlSpot(i.toDouble(), entries[i].moodScore.toDouble()));
-    }
+    // Build a full 7-day window (today - 6 days .. today)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    // Day labels for x-axis
-    final dayLabels = entries
-        .map((e) => DateFormat('EEE').format(e.date))
-        .toList();
+    // Map each of the 7 day slots to an entry (if one exists)
+    final spots = <FlSpot>[];
+    final dayLabels = <String>[];
+    // index → entry for tooltip lookup
+    final spotEntryMap = <int, dynamic>{};
+
+    for (int i = 0; i < 7; i++) {
+      final day = today.subtract(Duration(days: 6 - i));
+      dayLabels.add(DateFormat('E').format(day));
+
+      for (final e in entries) {
+        final local = e.date.toLocal();
+        final eDay = DateTime(local.year, local.month, local.day);
+        if (eDay == day) {
+          spots.add(FlSpot(i.toDouble(), e.moodScore.toDouble()));
+          spotEntryMap[i] = e;
+          break;
+        }
+      }
+    }
 
     return Container(
       height: 180,
-      padding: const EdgeInsets.fromLTRB(8, 20, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 20, 12, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
       child: LineChart(
         LineChartData(
+          minX: 0,
+          maxX: 6,
           minY: 0.5,
           maxY: 5.5,
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (_) => const Color(0xFF2C2C2A),
+              tooltipRoundedRadius: 12,
+              tooltipPadding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final idx = spot.x.toInt();
+                  final entry = spotEntryMap[idx];
+                  if (entry == null) return null;
+
+                  const emojiMap = {
+                    1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '🤩'
+                  };
+                  final emoji = emojiMap[entry.moodScore] ?? '😐';
+                  final note = (entry.note as String?)?.trim() ?? '';
+                  final preview = note.isEmpty
+                      ? emoji
+                      : '$emoji  ${note.length > 40 ? '${note.substring(0, 40)}…' : note}';
+
+                  return LineTooltipItem(
+                    preview,
+                    GoogleFonts.inter(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
+                  );
+                }).toList();
+              },
+            ),
+          ),
           lineBarsData: [
             LineChartBarData(
               spots: spots,
-              isCurved: true,
-              curveSmoothness: 0.35,
+              isCurved: spots.length > 2,
+              curveSmoothness: 0.3,
               gradient: const LinearGradient(
                 colors: [Color(0xFFD32F2F), Color(0xFF2E7D32)],
               ),
               barWidth: 3.5,
-              dotData: const FlDotData(show: false),
+              dotData: const FlDotData(show: true),
               belowBarData: BarAreaData(show: false),
             ),
           ],
@@ -380,14 +430,17 @@ class _TrendChart extends ConsumerWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 28,
+                reservedSize: 24,
+                interval: 1,
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
-                  if (idx < 0 || idx >= dayLabels.length) {
+                  if (value != idx.toDouble() ||
+                      idx < 0 ||
+                      idx >= dayLabels.length) {
                     return const SizedBox.shrink();
                   }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                  return SideTitleWidget(
+                    meta: meta,
                     child: Text(
                       dayLabels[idx],
                       style: GoogleFonts.inter(
